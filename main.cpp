@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <iostream>
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <stasm.h>
 #include <stasm_lib.h>
 #include "appmisc.h"
@@ -67,6 +67,7 @@ int main(int argc, char **argv)
     }
 
     cv::Mat img_mask;
+    cv::Rect bound_rect;
 
     if (!foundface) {
          printf("No face found in %s\n", path_in);
@@ -83,6 +84,9 @@ int main(int argc, char **argv)
         cv::medianBlur(img_mask, img_mask, 9);
         cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY_INV);
 
+        bound_rect = boundingRect(img_mask);
+        //std::cout << "X: " << bound_rect.x << " Y: " << bound_rect.y << std::endl;
+        //std::cout << "WIDTH: " << bound_rect.width << " HEIGHT: " << bound_rect.height << std::endl;
         //stasm_force_points_into_image(landmarks, img.cols, img.rows);
         //for (int i = 0; i < stasm_NLANDMARKS; i++)
         //    img(cvRound(landmarks[i*2+1]), cvRound(landmarks[i*2])) = 255;
@@ -93,10 +97,10 @@ int main(int argc, char **argv)
 
     if (path_out) {
         //cv::imwrite(path_out, cimg);
-        cv::imwrite(path_out, img_out);
+        cv::imwrite(path_out, img_out(bound_rect));
     } else {
         //cv::imshow("mask preview", cimg);
-        cv::imshow("mask preview", img_out);
+        cv::imshow("mask preview", img_out(bound_rect));
         cv::waitKey();
     }
 

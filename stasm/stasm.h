@@ -31,11 +31,11 @@ static const char* const STASM_VERSION = "4.1.0"
 #endif
 
 #include <opencv/cv.h>
-#include <opencv2/core.hpp>
-#include <opencv2/objdetect.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/core/utility.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/objdetect/objdetect.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+//#include <opencv2/core/utility.hpp>
 
 #if _MSC_VER >= 1200
 #pragma warning(default:4996) // re-enable the warnings disabled above
