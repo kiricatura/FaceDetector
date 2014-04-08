@@ -58,10 +58,10 @@ public:
     {
     }
 
-    ~HatDescMod()
-    {
-        HatDescDeallocate();
-    }
+    //~HatDescMod()
+    //{
+    //    HatDescDeallocate();
+    //}
 private:
     HatFit const hatfit_; // func to estimate HAT descriptor match
 

@@ -20,11 +20,11 @@ public:
     const;
 
     Hat() {}                      // constructor
-    ~Hat() 
-    {
-	    magmat_.deallocate();
-	    orientmat_.deallocate();
-    }
+    //~Hat() 
+    //{
+    //        magmat_.deallocate();
+    //        orientmat_.deallocate();
+    //}
 private:
     // All these private variables are initialized by Hat::Init_.  They must
     // be initialized if the image changes or if the patch width changes.
