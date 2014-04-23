@@ -10,6 +10,35 @@
 
 using namespace stasm;
 
+
+/* assume input is a single channel image */
+cv::Rect get_wrap_rect(cv::Mat img) {
+	int x_min, y_min, x_max, y_max;
+	uint8_t *data = (uint8_t *) img.data;
+	x_min = img.cols;
+	y_min = img.rows;
+	x_max = 0;
+	y_max = 0;
+
+	for (int x = 0; x < img.cols; x++) {
+		for (int y = 0; y < img.rows; y++) {
+			if (data[y * img.cols + x]) {
+				if (x < x_min)
+					x_min = x;
+				if (y < y_min)
+					y_min = y;
+				if (x > x_max)
+					x_max = x;
+				if (y > y_max)
+					y_max = y;
+			}
+		}
+	}
+
+	cv::Rect rect(x_min, y_min, x_max - x_min, y_max - y_min);
+	return rect;
+}
+
 static void show_usage(char *program) {
 	std::cout << "usage: " << program << std::endl;
 	std::cout << "   [-i input_file]  - mandatory" << std::endl;
@@ -84,7 +113,11 @@ int main(int argc, char **argv)
         cv::medianBlur(img_mask, img_mask, 9);
         cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY_INV);
 
-        bound_rect = boundingRect(img_mask);
+	//img_mask.convertTo(img_mask, CV_32S);
+	//cv::cvtColor(img_mask, img_mask, cv::COLOR_GRAY2BGR);
+
+        //bound_rect = boundingRect(img_mask);
+        bound_rect = get_wrap_rect(img_mask);
         //std::cout << "X: " << bound_rect.x << " Y: " << bound_rect.y << std::endl;
         //std::cout << "WIDTH: " << bound_rect.width << " HEIGHT: " << bound_rect.height << std::endl;
         //stasm_force_points_into_image(landmarks, img.cols, img.rows);
@@ -101,6 +134,7 @@ int main(int argc, char **argv)
     } else {
         //cv::imshow("mask preview", cimg);
         cv::imshow("mask preview", img_out(bound_rect));
+        //cv::imshow("mask preview", img_out);
         cv::waitKey();
     }
 
