@@ -110,7 +110,7 @@ int main(int argc, char **argv)
         cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY);
         cv::floodFill(img_mask, cv::Point(0, 0), cv::Scalar(255.0, 255.0, 255.0));
 
-        cv::medianBlur(img_mask, img_mask, 9);
+        cv::medianBlur(img_mask, img_mask, 21);
         cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY_INV);
 
 	//img_mask.convertTo(img_mask, CV_32S);
