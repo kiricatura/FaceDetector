@@ -100,6 +100,7 @@ int main(int argc, char **argv)
 
     if (!foundface) {
          printf("No face found in %s\n", path_in);
+	 return 0;
     } else {
         // draw the landmarks on the image as white dots (image is monochrome)
 
