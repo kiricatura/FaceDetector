@@ -10,11 +10,11 @@
 
 using namespace stasm;
 
-
 /* assume input is a single channel image */
 cv::Rect get_wrap_rect(cv::Mat img) {
 	int x_min, y_min, x_max, y_max;
 	uint8_t *data = (uint8_t *) img.data;
+
 	x_min = img.cols;
 	y_min = img.rows;
 	x_max = 0;
@@ -77,11 +77,12 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    //cv::Mat_<unsigned char> img(cv::imread(path, CV_LOAD_IMAGE_GRAYSCALE));
-    cv::Mat img(cv::imread(path_in, 0));
-    CImage cimg(cv::imread(path_in));
+    cv::Mat img_in(cv::imread(path_in));
+    cv::Mat_<unsigned char> img_gray;
+    CImage cimg(img_in);
+    cvtColor(img_in, img_gray, CV_RGB2GRAY);
 
-    if (!img.data) {
+    if (!img_gray.data) {
         printf("Cannot load %s\n", path_in);
         exit(1);
     }
@@ -90,18 +91,17 @@ int main(int argc, char **argv)
     float landmarks[2 * stasm_NLANDMARKS]; // x,y coords (note the 2)
 
     if (!stasm_search_single(&foundface, landmarks,
-                             (const char*)img.data, img.cols, img.rows, path_in, "data")) {
+                             (const char*)img_gray.data, img_gray.cols, img_gray.rows, path_in, "data")) {
         printf("Error in stasm_search_single: %s\n", stasm_lasterr());
         exit(1);
     }
 
-    cv::Mat img_mask;
-    cv::Rect bound_rect;
-
     if (!foundface) {
          printf("No face found in %s\n", path_in);
-	 return 0;
     } else {
+        cv::Mat img_mask, img_out;
+        cv::Rect bound_rect;
+
         // draw the landmarks on the image as white dots (image is monochrome)
 
         Shape shape(LandmarksAsShape(landmarks));
@@ -114,8 +114,8 @@ int main(int argc, char **argv)
         cv::medianBlur(img_mask, img_mask, 21);
         cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY_INV);
 
-	//img_mask.convertTo(img_mask, CV_32S);
-	//cv::cvtColor(img_mask, img_mask, cv::COLOR_GRAY2BGR);
+	    //img_mask.convertTo(img_mask, CV_32S);
+	    //cv::cvtColor(img_mask, img_mask, cv::COLOR_GRAY2BGR);
 
         //bound_rect = boundingRect(img_mask);
         bound_rect = get_wrap_rect(img_mask);
@@ -124,19 +124,18 @@ int main(int argc, char **argv)
         //stasm_force_points_into_image(landmarks, img.cols, img.rows);
         //for (int i = 0; i < stasm_NLANDMARKS; i++)
         //    img(cvRound(landmarks[i*2+1]), cvRound(landmarks[i*2])) = 255;
-    }
 
-    cv::Mat img_out;
-    cimg.copyTo(img_out, img_mask);
-
-    if (path_out) {
-        //cv::imwrite(path_out, cimg);
-        cv::imwrite(path_out, img_out(bound_rect));
-    } else {
-        //cv::imshow("mask preview", cimg);
-        cv::imshow("mask preview", img_out(bound_rect));
-        //cv::imshow("mask preview", img_out);
-        cv::waitKey();
+        cimg.copyTo(img_out, img_mask);
+        
+        if (path_out) {
+            //cv::imwrite(path_out, cimg);
+            cv::imwrite(path_out, img_out(bound_rect));
+        } else {
+            //cv::imshow("mask preview", cimg);
+            cv::imshow("mask preview", img_out(bound_rect));
+            //cv::imshow("mask preview", img_out);
+            cv::waitKey();
+        }
     }
 
     return 0;
