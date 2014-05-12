@@ -65,14 +65,15 @@ void DetectFaces(          // all face rects into detpars
 
     // the params below are accurate but slow
     static const double SCALE_FACTOR   = 1.1;
-    static const int    MIN_NEIGHBORS  = 3;
-    static const int    DETECTOR_FLAGS = 0;
+    static const int    MIN_NEIGHBORS  = 1;
+    static const int    DETECTOR_FLAGS = CV_HAAR_FIND_BIGGEST_OBJECT;
 
     vec_Rect facerects = // all face rects in image
         Detect(equalized_img, facedet_g, NULL,
                SCALE_FACTOR, MIN_NEIGHBORS, DETECTOR_FLAGS, minpix);
 
     // copy face rects into the detpars vector
+    //printf("ILYA DEBUG: number of faces detected: %d\n", NSIZE(facerects));
 
     detpars.resize(NSIZE(facerects));
     for (int i = 0; i < NSIZE(facerects); i++)

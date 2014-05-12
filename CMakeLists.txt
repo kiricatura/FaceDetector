@@ -73,6 +73,10 @@ ${STASM_BASE_DIR}/stasm/MOD_1
 
 SET(LIBS  ${OpenCV_LIBS})
 
+
+SET(GCC_COMPILE_FLAGS "-g")
+SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COMPILE_FLAGS}")
+
 set(STASM_LIBS stasm)
 add_library(${STASM_LIBS} ${OBJ_MOD1} ${OBJ_STASM})
 target_link_libraries(${STASM_LIBS} ${LIBS})
