@@ -91,7 +91,7 @@ int main(int argc, char **argv)
     float landmarks[2 * stasm_NLANDMARKS]; // x,y coords (note the 2)
 
     if (!stasm_search_single(&foundface, landmarks,
-                             (const char*)img_gray.data, img_gray.cols, img_gray.rows, path_in, "data")) {
+                             (const char*) img_gray.data, img_gray.cols, img_gray.rows, path_in, "data")) {
         printf("Error in stasm_search_single: %s\n", stasm_lasterr());
         exit(1);
     }
@@ -103,7 +103,6 @@ int main(int argc, char **argv)
         cv::Rect bound_rect;
 
         // draw the landmarks on the image as white dots (image is monochrome)
-
         Shape shape(LandmarksAsShape(landmarks));
         DrawShape(cimg, shape, 0xffffff);
 
@@ -126,10 +125,21 @@ int main(int argc, char **argv)
         //    img(cvRound(landmarks[i*2+1]), cvRound(landmarks[i*2])) = 255;
 
         cimg.copyTo(img_out, img_mask);
-        
+        cv::cvtColor(img_out, img_out, cv::COLOR_BGR2BGRA, 4);
+
+        uint8_t *mask_data = (uint8_t *) img_mask.data;
+	    for (int i = 0; i < img_out.rows; i++) {
+            for (int j = 0; j < img_out.cols; j++) {
+                cv::Vec4b& v = img_out.at<cv::Vec4b>(i,j);
+		        if (!*mask_data++)
+                    v[3] = 0;
+            }
+        }
+
         if (path_out) {
             //cv::imwrite(path_out, cimg);
             cv::imwrite(path_out, img_out(bound_rect));
+            //cv::imwrite(path_out, img_out);
         } else {
             //cv::imshow("mask preview", cimg);
             cv::imshow("mask preview", img_out(bound_rect));
