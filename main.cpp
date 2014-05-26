@@ -102,15 +102,18 @@ int main(int argc, char **argv)
         cv::Mat img_mask, img_out;
         cv::Rect bound_rect;
 
+        img_mask = cv::Mat::zeros(cimg.size(), CV_8UC3);
+        CImage cimg_tmp(img_mask);
+
         // draw the landmarks on the image as white dots (image is monochrome)
         Shape shape(LandmarksAsShape(landmarks));
-        DrawShape(cimg, shape, 0xffffff);
+        DrawShape(cimg_tmp, shape, 0xffffff);
 
-        cv::cvtColor(cimg, img_mask, cv::COLOR_BGR2GRAY);
-        cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY);
+        cv::cvtColor(cimg_tmp, img_mask, cv::COLOR_BGR2GRAY);
+        //cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY);
         cv::floodFill(img_mask, cv::Point(0, 0), cv::Scalar(255.0, 255.0, 255.0));
 
-        cv::medianBlur(img_mask, img_mask, 21);
+        //cv::medianBlur(img_mask, img_mask, 21);
         cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY_INV);
 
 	    //img_mask.convertTo(img_mask, CV_32S);
@@ -144,6 +147,7 @@ int main(int argc, char **argv)
             //cv::imshow("mask preview", cimg);
             cv::imshow("mask preview", img_out(bound_rect));
             //cv::imshow("mask preview", img_out);
+            //cv::imshow("mask preview", img_mask);
             cv::waitKey();
         }
     }
