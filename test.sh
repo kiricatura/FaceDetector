@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # TODO: add input args for input/output directories
-INPUT_DIR="/root/workspace/input"
+INPUT_DIR="/root/workspace/input_to_test"
 OUTPUT_DIR="/root/workspace/output"
 INPUT_IMAGES=`ls $INPUT_DIR`
 
@@ -12,6 +12,7 @@ mkdir $OUTPUT_DIR
 for image in $INPUT_IMAGES
 do
 	echo "Processing ${INPUT_DIR}/$image"
-    ./facecut -i ${INPUT_DIR}/$image -o ${OUTPUT_DIR}/$image 2> /dev/null
+    out_image=`echo $image | cut -d"." -f1`
+    ./facecut -i ${INPUT_DIR}/$image -o ${OUTPUT_DIR}/${out_image}.png 2> /dev/null
 done
 
