@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # TODO: add input args for input/output directories
-INPUT_DIR="/root/workspace/input_to_test"
+INPUT_DIR="/root/workspace/input"
 OUTPUT_DIR="/root/workspace/output"
 INPUT_IMAGES=`ls $INPUT_DIR`
 
