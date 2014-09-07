@@ -227,7 +227,7 @@ int stasm_search_single(   // wrapper for stasm_search_auto and friends
         return false;
 
     if (!stasm_open_image(img, width, height, imgpath,
-                          0 /*multiface*/, 10 /*minwidth*/))
+                          0 /*multiface*/, 15 /*minwidth*/))
         return false;
 
     return stasm_search_auto(foundface, landmarks);
