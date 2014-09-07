@@ -39,6 +39,38 @@ cv::Rect get_wrap_rect(cv::Mat img) {
 	return rect;
 }
 
+enum rotate_flags {
+    ROTATE_NONE,
+    ROTATE_CLOCKWISE,
+    ROTATE_COUNTER_CLOCKWISE,
+    ROTATE_UPSIDE_DOWN
+};
+
+static cv::Mat rotate_image(cv::Mat image, int flag)
+{
+    cv::Mat image_rotated = image.clone();
+
+    switch (flag) {
+    case ROTATE_NONE:
+                    break;
+    case ROTATE_CLOCKWISE:
+                    image_rotated = image.t();
+                    flip(image_rotated, image_rotated, 1 /* flipMode */);
+                    break;
+    case ROTATE_COUNTER_CLOCKWISE:
+                    image_rotated = image.t();
+                    flip(image_rotated, image_rotated, 0 /* flipMode */);
+                    break;
+    case ROTATE_UPSIDE_DOWN:
+                    flip(image_rotated, image_rotated, 0 /* flipMode */);
+                    break;
+    default:
+            std::cout << "Unsupported rotate option." << std::endl;
+    }
+
+    return image_rotated;
+}
+
 static void show_usage(char *program) {
 	std::cout << "usage: " << program << std::endl;
 	std::cout << "   [-i input_file]  - mandatory" << std::endl;
@@ -78,7 +110,7 @@ int main(int argc, char **argv)
     }
 
     cv::Mat img_in(cv::imread(path_in));
-    cv::Mat_<unsigned char> img_gray;
+    cv::Mat_<unsigned char> img_gray, img_rot;
     CImage cimg(img_in);
     cvtColor(img_in, img_gray, CV_RGB2GRAY);
 
@@ -87,21 +119,28 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    int foundface;
+    int found_face, rotate_flag;
     float landmarks[2 * stasm_NLANDMARKS]; // x,y coords (note the 2)
 
-    if (!stasm_search_single(&foundface, landmarks,
-                             (const char*) img_gray.data, img_gray.cols, img_gray.rows, path_in, "data")) {
-        printf("Error in stasm_search_single: %s\n", stasm_lasterr());
-        exit(1);
+    for (rotate_flag = ROTATE_NONE; rotate_flag <= ROTATE_UPSIDE_DOWN; rotate_flag++) {
+        img_rot = rotate_image(img_gray, rotate_flag);
+        if (!stasm_search_single(&found_face, landmarks,
+                                 (const char*) img_rot.data, img_rot.cols, img_rot.rows, path_in, "data")) {
+            printf("Error in stasm_search_single: %s\n", stasm_lasterr());
+            exit(1);
+        }
+
+        if (found_face)
+            break;
     }
 
-    if (!foundface) {
+    if (!found_face) {
          printf("No face found in %s\n", path_in);
     } else {
         cv::Mat img_mask, img_out;
         cv::Rect bound_rect;
 
+        cimg = rotate_image(cimg, rotate_flag);
         img_mask = cv::Mat::zeros(cimg.size(), CV_8UC3);
         CImage cimg_tmp(img_mask);
 
