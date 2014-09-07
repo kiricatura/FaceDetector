@@ -97,16 +97,18 @@ static void show_usage(char *program) {
 	std::cout << "usage: " << program << std::endl;
 	std::cout << "   [-i input_file]  - mandatory" << std::endl;
 	std::cout << "   [-o output_file] - optional" << std::endl;
+	std::cout << "   [-r ] - optional (assume that input image might be rotated)" << std::endl;
 }
 
 int main(int argc, char **argv)
 {
     char *path_in = NULL;
     char *path_out = NULL;
-	const char *const opts= "i:o:";
+    int rotate = 0;
+	const char *const opts= "ri:o:";
 	int op;
 
-    if (argc != 3 && argc != 5) {
+    if (argc < 3 || argc > 6) {
         std::cout << "Invalid args" << std::endl;
         show_usage(argv[0]);
         exit(0);
@@ -120,6 +122,9 @@ int main(int argc, char **argv)
 		case 'o':
 			path_out = optarg;
 			break;
+        case 'r':
+            rotate = 1;
+            break;
 		default:
 			show_usage(argv[0]);
 			exit(0);
@@ -141,19 +146,29 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    int found_face, rotate_flag;
+    int found_face, rotate_flag = ROTATE_NONE;
     float landmarks[2 * stasm_NLANDMARKS]; // x,y coords (note the 2)
 
-    for (rotate_flag = ROTATE_NONE; rotate_flag <= ROTATE_UPSIDE_DOWN; rotate_flag++) {
-        img_rot = rotate_image(img_gray, rotate_flag);
-        if (!stasm_search_single(&found_face, landmarks,
-                                 (const char*) img_rot.data, img_rot.cols, img_rot.rows, path_in, "data")) {
-            printf("Error in stasm_search_single: %s\n", stasm_lasterr());
-            exit(1);
-        }
+    if (rotate) {
+        for ( ; rotate_flag <= ROTATE_UPSIDE_DOWN; rotate_flag++) {
+            img_rot = rotate_image(img_gray, rotate_flag);
+            if (!stasm_search_single(&found_face, landmarks,
+                                     (const char*) img_rot.data, img_rot.cols, img_rot.rows, path_in, "data")) {
+                printf("Error in stasm_search_single: %s\n", stasm_lasterr());
+                exit(1);
+            }
 
-        if (found_face)
-            break;
+            std::cout << "Rotate " << rotate_flag << std::endl;
+
+            if (found_face)
+                break;
+        }
+    } else {
+            if (!stasm_search_single(&found_face, landmarks,
+                                     (const char*) img_gray.data, img_gray.cols, img_gray.rows, path_in, "data")) {
+                printf("Error in stasm_search_single: %s\n", stasm_lasterr());
+                exit(1);
+            }
     }
 
     if (!found_face) {
