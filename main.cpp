@@ -67,27 +67,30 @@ enum rotate_flags {
 
 static cv::Mat rotate_image(cv::Mat image, int flag)
 {
-    cv::Mat image_rotated = image.clone();
+    cv::Mat image_rot;
 
     switch (flag) {
     case ROTATE_NONE:
+                    image_rot = image;
                     break;
     case ROTATE_CLOCKWISE:
-                    image_rotated = image.t();
-                    flip(image_rotated, image_rotated, 1 /* flipMode */);
+                    image_rot = image.t();
+                    flip(image_rot, image_rot, 1 /* flipMode */);
                     break;
     case ROTATE_COUNTER_CLOCKWISE:
-                    image_rotated = image.t();
-                    flip(image_rotated, image_rotated, 0 /* flipMode */);
+                    image_rot = image.t();
+                    flip(image_rot, image_rot, 0 /* flipMode */);
                     break;
     case ROTATE_UPSIDE_DOWN:
-                    flip(image_rotated, image_rotated, 0 /* flipMode */);
+                    image_rot = image.clone();
+                    flip(image_rot, image_rot, 0 /* flipMode */);
                     break;
     default:
+            image_rot = image;
             std::cout << "Unsupported rotate option." << std::endl;
     }
 
-    return image_rotated;
+    return image_rot;
 }
 
 static void show_usage(char *program) {
