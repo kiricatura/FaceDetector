@@ -10,6 +10,25 @@
 
 using namespace stasm;
 
+static int is_image(char *path)
+{
+    std::string allowed_list[] = { "jpg", "jpeg", "gif", "png", "tiff", "bmp" };
+    std::string path_str(path);
+    int idx = path_str.rfind('.');
+
+    if (idx != std::string::npos) {
+        std::string extension = path_str.substr(idx + 1);
+        int len = sizeof(allowed_list) / sizeof(allowed_list[0]);
+
+        for (int i = 0; i < len; i++) {
+            if (extension == allowed_list[i])
+                return 1;
+        }
+    }
+
+    return 0;
+}
+
 /* assume input is a single channel image */
 cv::Rect get_wrap_rect(cv::Mat img) {
 	int x_min, y_min, x_max, y_max;
@@ -104,7 +123,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-    if (!path_in) {
+    if (!path_in || !is_image(path_in)) {
         std::cout << "No input image specified" << std::endl;
         exit(0);
     }
