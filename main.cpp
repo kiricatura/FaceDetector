@@ -158,7 +158,7 @@ int main(int argc, char **argv)
                 exit(1);
             }
 
-            std::cout << "Rotate " << rotate_flag << std::endl;
+            //std::cout << "Rotate " << rotate_flag << std::endl;
 
             if (found_face)
                 break;
