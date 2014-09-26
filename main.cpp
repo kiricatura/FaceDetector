@@ -12,7 +12,7 @@ using namespace stasm;
 
 static int is_image(char *path)
 {
-    std::string allowed_list[] = { "jpg", "jpeg", "gif", "png", "tiff", "bmp" };
+    std::string allowed_list[] = { "jpg", "JPG", "jpeg", "gif", "png", "tiff", "bmp" };
     std::string path_str(path);
     int idx = path_str.rfind('.');
 

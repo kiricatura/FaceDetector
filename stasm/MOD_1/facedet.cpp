@@ -66,7 +66,8 @@ void DetectFaces(          // all face rects into detpars
     // the params below are accurate but slow
     //static const double SCALE_FACTOR   = 1.1; /* original scale factor */
     static const double SCALE_FACTOR   = 1.3;
-    static const int    MIN_NEIGHBORS  = 1;
+    //static const int    MIN_NEIGHBORS  = 1; /* original min_neighbours */
+    static const int    MIN_NEIGHBORS  = 2;
     static const int    DETECTOR_FLAGS = CV_HAAR_FIND_BIGGEST_OBJECT;
 
     vec_Rect facerects = // all face rects in image
