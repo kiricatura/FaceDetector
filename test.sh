@@ -13,6 +13,6 @@ for image in $INPUT_IMAGES
 do
 	echo "Processing ${INPUT_DIR}/$image"
     out_image=`echo $image | cut -d"." -f1`
-    ./facecut -i ${INPUT_DIR}/$image -o ${OUTPUT_DIR}/${out_image}.png 2> /dev/null
+    ./facecut -r -i ${INPUT_DIR}/$image -o ${OUTPUT_DIR}/${out_image}.png 2> /dev/null
 done
 
