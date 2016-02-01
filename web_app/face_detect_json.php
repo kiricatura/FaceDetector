@@ -38,7 +38,7 @@ ini_set('max_execution_time', 300);
 #<4>Get and stored uploaded photos on the server
 if (move_uploaded_file($_FILES['uploaded_file']['tmp_name'], $photo_upload_path)) {
     $command = "LD_LIBRARY_PATH=/usr/lib ./facecut -i $photo_upload_path -o $processed_photo_output_path -r &> /dev/null";
-    exec($command);
+    system($command);
 
     streamFile($processed_photo_output_path, $downloadFileName, "application/json");
 } else {
