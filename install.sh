@@ -125,7 +125,7 @@ if [ ! -d $APP_WEB_DIR ]; then
 fi
 
 cp -r ../web_app/* ./facecut $APP_WEB_DIR
-chown -R admin $APP_WEB_DIR/*
+chown -R admin:admin $APP_WEB_DIR/*
 
 echo "Finished installing FaceDetector"
 
