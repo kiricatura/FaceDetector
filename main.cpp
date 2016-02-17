@@ -95,20 +95,22 @@ static cv::Mat rotate_image(cv::Mat image, int flag)
 
 static void show_usage(char *program) {
 	std::cout << "usage: " << program << std::endl;
-	std::cout << "   [-i input_file]  - mandatory" << std::endl;
-	std::cout << "   [-o output_file] - optional" << std::endl;
+	std::cout << "   [-d data directory]  - optional (default: data)" << std::endl;
+	std::cout << "   [-i input_file]      - mandatory" << std::endl;
+	std::cout << "   [-o output_file]     - optional" << std::endl;
 	std::cout << "   [-r ] - optional (assume that input image might be rotated)" << std::endl;
 }
 
 int main(int argc, char **argv)
 {
+    char *data_dir = NULL;
     char *path_in = NULL;
     char *path_out = NULL;
     int rotate = 0;
-	const char *const opts= "ri:o:";
+	const char *const opts= "ri:o:d:";
 	int op;
 
-    if (argc < 3 || argc > 6) {
+    if (argc < 3 || argc > 8) {
         std::cout << "Invalid args" << std::endl;
         show_usage(argv[0]);
         exit(0);
@@ -122,9 +124,12 @@ int main(int argc, char **argv)
 		case 'o':
 			path_out = optarg;
 			break;
-        case 'r':
-            rotate = 1;
-            break;
+		case 'd':
+			data_dir = optarg;
+			break;
+		case 'r':
+			rotate = 1;
+			break;
 		default:
 			show_usage(argv[0]);
 			exit(0);
@@ -153,7 +158,9 @@ int main(int argc, char **argv)
         for ( ; rotate_flag <= ROTATE_UPSIDE_DOWN; rotate_flag++) {
             img_rot = rotate_image(img_gray, rotate_flag);
             if (!stasm_search_single(&found_face, landmarks,
-                                     (const char*) img_rot.data, img_rot.cols, img_rot.rows, path_in, "data")) {
+                                     (const char*) img_rot.data, img_rot.cols,
+				     img_rot.rows, path_in,
+				     data_dir ? data_dir : "data")) {
                 printf("Error in stasm_search_single: %s\n", stasm_lasterr());
                 exit(1);
             }
@@ -165,7 +172,9 @@ int main(int argc, char **argv)
         }
     } else {
             if (!stasm_search_single(&found_face, landmarks,
-                                     (const char*) img_gray.data, img_gray.cols, img_gray.rows, path_in, "data")) {
+                                     (const char*) img_gray.data, img_gray.cols,
+				     img_gray.rows, path_in,
+				     data_dir ? data_dir : "data")) {
                 printf("Error in stasm_search_single: %s\n", stasm_lasterr());
                 exit(1);
             }
