@@ -12,8 +12,9 @@ using namespace stasm;
 
 static int is_image(char *path)
 {
-    std::string allowed_list[] = { "jpg", "JPG", "jpeg", "gif", "png", "tiff", "bmp" };
     std::string path_str(path);
+    std::string allowed_list[] =
+        { "jpg", "JPG", "jpeg", "gif", "png", "tiff", "bmp" };
     int idx = path_str.rfind('.');
 
     if (idx != std::string::npos) {
@@ -25,7 +26,7 @@ static int is_image(char *path)
                 return 1;
         }
     }
-
+    
     return 0;
 }
 
@@ -157,10 +158,13 @@ int main(int argc, char **argv)
     if (rotate) {
         for ( ; rotate_flag <= ROTATE_UPSIDE_DOWN; rotate_flag++) {
             img_rot = rotate_image(img_gray, rotate_flag);
-            if (!stasm_search_single(&found_face, landmarks,
-                                     (const char*) img_rot.data, img_rot.cols,
-				     img_rot.rows, path_in,
-				     data_dir ? data_dir : "data")) {
+            if (!stasm_search_single(&found_face,
+                                     landmarks,
+                                     (const char *) img_rot.data,
+                                     img_rot.cols,
+                                     img_rot.rows,
+                                     path_in,
+                                     data_dir ? data_dir : "data")) {
                 printf("Error in stasm_search_single: %s\n", stasm_lasterr());
                 exit(1);
             }
@@ -171,10 +175,13 @@ int main(int argc, char **argv)
                 break;
         }
     } else {
-            if (!stasm_search_single(&found_face, landmarks,
-                                     (const char*) img_gray.data, img_gray.cols,
-				     img_gray.rows, path_in,
-				     data_dir ? data_dir : "data")) {
+            if (!stasm_search_single(&found_face,
+                                     landmarks,
+                                     (const char *) img_gray.data,
+                                     img_gray.cols,
+                                     img_gray.rows,
+                                     path_in,
+                                     data_dir ? data_dir : "data")) {
                 printf("Error in stasm_search_single: %s\n", stasm_lasterr());
                 exit(1);
             }
@@ -190,31 +197,28 @@ int main(int argc, char **argv)
         img_mask = cv::Mat::zeros(cimg.size(), CV_8UC3);
         CImage cimg_tmp(img_mask);
 
-        // draw the landmarks on the image as white dots (image is monochrome)
+        // Draw bounding face shape:
+        // border:         white
+        // other parts:    black
         Shape shape(LandmarksAsShape(landmarks));
         DrawShape(cimg_tmp, shape, 0xffffff);
 
+        // Create face shape mask:
+        // face shape:     white
+        // other parts:    black
         cv::cvtColor(cimg_tmp, img_mask, cv::COLOR_BGR2GRAY);
-        //cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY);
-        cv::floodFill(img_mask, cv::Point(0, 0), cv::Scalar(255.0, 255.0, 255.0));
-
-        //cv::medianBlur(img_mask, img_mask, 21);
+        cv::floodFill(img_mask, cv::Point(0, 0),
+                      cv::Scalar(255.0, 255.0, 255.0));
         cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY_INV);
 
-	    //img_mask.convertTo(img_mask, CV_32S);
-	    //cv::cvtColor(img_mask, img_mask, cv::COLOR_GRAY2BGR);
-
-        //bound_rect = boundingRect(img_mask);
+        // Create bounding rectangle for image mask
         bound_rect = get_wrap_rect(img_mask);
-        //std::cout << "X: " << bound_rect.x << " Y: " << bound_rect.y << std::endl;
-        //std::cout << "WIDTH: " << bound_rect.width << " HEIGHT: " << bound_rect.height << std::endl;
-        //stasm_force_points_into_image(landmarks, img.cols, img.rows);
-        //for (int i = 0; i < stasm_NLANDMARKS; i++)
-        //    img(cvRound(landmarks[i*2+1]), cvRound(landmarks[i*2])) = 255;
 
+        // Apply mask on original image
         cimg.copyTo(img_out, img_mask);
         cv::cvtColor(img_out, img_out, cv::COLOR_BGR2BGRA, 4);
 
+        // Set alpha channel for all pixels to 0
         uint8_t *mask_data = (uint8_t *) img_mask.data;
 	    for (int i = 0; i < img_out.rows; i++) {
             for (int j = 0; j < img_out.cols; j++) {
@@ -225,14 +229,9 @@ int main(int argc, char **argv)
         }
 
         if (path_out) {
-            //cv::imwrite(path_out, cimg);
             cv::imwrite(path_out, img_out(bound_rect));
-            //cv::imwrite(path_out, img_out);
         } else {
-            //cv::imshow("mask preview", cimg);
             cv::imshow("mask preview", img_out(bound_rect));
-            //cv::imshow("mask preview", img_out);
-            //cv::imshow("mask preview", img_mask);
             cv::waitKey();
         }
     }
