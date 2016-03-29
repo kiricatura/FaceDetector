@@ -73,13 +73,37 @@ void set_alpha_to_zero(cv::Mat& im, cv::Mat& mask)
     }
 }
 
+/*
+ * Gamma correction algorithm:
+ *
+ *      1. Convert ROI to grayscale image
+ *      2. Calculate mean:
+ *              - below 100: set optimalMean 200
+ *              - above 200: set optimalMean 127
+ *              - otherwise: return
+ *      3. Calculate gamma based on optimalMean
+ *      4. Calculate LUT for all pixel vals [0, 255]
+ *      5. Apply the LUP on image ROI
+ *
+ */
 void gamma_correct(cv::Mat& im, cv::Rect& rect)
 {
     cv::Mat imROI(im(rect)), imGray;
     cvtColor(imROI, imGray, CV_RGB2GRAY);
     cv::Scalar imMean = cv::mean(imGray);
     unsigned imMeanInt = imMean(0);
-    float imGamma = log2(imMeanInt) / log2(127);
+
+    if (imMeanInt > 100 && imMeanInt < 200)
+        return;
+
+    unsigned optimalMean = 127;
+
+    if (imMeanInt <= 100)
+        optimalMean = 200;
+
+    float imGamma = log2(imMeanInt) / log2(optimalMean);
+
+    //cv::imshow("before", im(rect));
 
     // Build look-up table
     uchar lut[256];
@@ -97,6 +121,9 @@ void gamma_correct(cv::Mat& im, cv::Rect& rect)
             }
         }
     }
+
+    //cv::imshow("after", im(rect));
+    //cv::waitKey();
 }
 
 enum rotate_flags {
