@@ -64,7 +64,7 @@ cv::Rect get_wrap_rect(cv::Mat img) {
 		}
 	}
 
-	cv::Rect rect(x_min, y_min, x_max - x_min, y_max - y_min);
+	Rect rect(x_min, y_min, x_max - x_min, y_max - y_min);
 	return rect;
 }
 
@@ -178,11 +178,11 @@ static int get_face_landmarks(cv::Mat_<unsigned char>& imgGray,
                               float *landmarks, int& rotateFlag)
 {
     cv::Mat_<unsigned char> imgRot;
-    int found_face;
+    int foundFace;
 
     do {
         imgRot = rotate_image(imgGray, rotateFlag);
-        if (!stasm_search_single(&found_face,
+        if (!stasm_search_single(&foundFace,
                                  landmarks,
                                  (const char *) imgRot.data,
                                  imgRot.cols,
@@ -195,16 +195,62 @@ static int get_face_landmarks(cv::Mat_<unsigned char>& imgGray,
 
         //std::cout << "Rotate " << rotate_flag << std::endl;
 
-        if (found_face)
+        if (foundFace)
             break;
 
         rotateFlag++;
     } while (rotate && rotateFlag <= ROTATE_UPSIDE_DOWN);
 
-    if (!found_face) {
+    if (!foundFace) {
         cout << "No face found in " << path_in << endl;
         return -1;
     }
+
+    return 0;
+}
+
+/* Generate a mask and output face */
+static int process_landmarks(Mat& imIn, float *landmarks,
+                             int rFlag, Mat& imOut)
+{
+    Mat mask, imTmp;
+    Rect boundRect;
+
+    CImage cimg(imIn);
+    cimg = rotate_image(cimg, rFlag);
+    mask = Mat::zeros(cimg.size(), CV_8UC3);
+    CImage cimg_tmp(mask);
+
+    // Draw bounding face shape:
+    // border:         white
+    // other parts:    black
+    Shape shape(LandmarksAsShape(landmarks));
+    DrawShape(cimg_tmp, shape, 0xffffff);
+
+    // Create face shape mask:
+    // face shape:     white
+    // other parts:    black
+    cv::cvtColor(cimg_tmp, mask, cv::COLOR_BGR2GRAY);
+    cv::floodFill(mask, cv::Point(0, 0),
+                  cv::Scalar(255.0, 255.0, 255.0));
+    cv::threshold(mask, mask, 254, 255, CV_THRESH_BINARY_INV);
+
+    // Create bounding rectangle for image mask
+    boundRect = get_wrap_rect(mask);
+
+    // Apply mask on original image
+    cimg.copyTo(imTmp, mask);
+    cv::cvtColor(imTmp, imTmp, cv::COLOR_BGR2BGRA, 4);
+
+    // Set alpha channel for all pixels to 0
+    set_alpha_to_zero(imTmp, mask);
+
+    // Gamma correct output image
+    gamma_correct(imTmp, boundRect);
+
+    // TODO: implement Bilateral Filter
+
+    imOut = imTmp(boundRect);
 
     return 0;
 }
@@ -264,60 +310,29 @@ int main(int argc, char **argv)
     if (ret < 0)
         exit(0);
 
-    cv::Mat img_in(cv::imread(path_in));
-    cv::Mat_<unsigned char> img_gray;
-    CImage cimg(img_in);
-    cvtColor(img_in, img_gray, CV_RGB2GRAY);
+    cv::Mat imIn(cv::imread(path_in));
+    cv::Mat_<unsigned char> imGray;
+    cvtColor(imIn, imGray, CV_RGB2GRAY);
 
-    if (!img_gray.data) {
+    if (!imGray.data) {
         cout << "Cannot load " << path_in << endl;
         exit(1);
     }
 
+    int rFlag = ROTATE_NONE;
     float landmarks[2 * stasm_NLANDMARKS]; // x,y coords (note the 2)
-    int rotateFlag = ROTATE_NONE;
-    ret = get_face_landmarks(img_gray, landmarks, rotateFlag);
+
+    ret = get_face_landmarks(imGray, landmarks, rFlag);
     if (ret < 0)
         exit(0);
 
-    Mat img_mask, img_out;
-    cv::Rect bound_rect;
-
-    cimg = rotate_image(cimg, rotateFlag);
-    img_mask = cv::Mat::zeros(cimg.size(), CV_8UC3);
-    CImage cimg_tmp(img_mask);
-
-    // Draw bounding face shape:
-    // border:         white
-    // other parts:    black
-    Shape shape(LandmarksAsShape(landmarks));
-    DrawShape(cimg_tmp, shape, 0xffffff);
-
-    // Create face shape mask:
-    // face shape:     white
-    // other parts:    black
-    cv::cvtColor(cimg_tmp, img_mask, cv::COLOR_BGR2GRAY);
-    cv::floodFill(img_mask, cv::Point(0, 0),
-                  cv::Scalar(255.0, 255.0, 255.0));
-    cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY_INV);
-
-    // Create bounding rectangle for image mask
-    bound_rect = get_wrap_rect(img_mask);
-
-    // Apply mask on original image
-    cimg.copyTo(img_out, img_mask);
-    cv::cvtColor(img_out, img_out, cv::COLOR_BGR2BGRA, 4);
-
-    // Set alpha channel for all pixels to 0
-    set_alpha_to_zero(img_out, img_mask);
-
-    // Gamma correct output image
-    gamma_correct(img_out, bound_rect);
+    Mat imOut;
+    process_landmarks(imIn, landmarks, rFlag, imOut);
 
     if (path_out) {
-        cv::imwrite(path_out, img_out(bound_rect));
+        cv::imwrite(path_out, imOut);
     } else {
-        cv::imshow("mask preview", img_out(bound_rect));
+        cv::imshow("mask preview", imOut);
         cv::waitKey();
     }
 
