@@ -83,7 +83,13 @@ void set_alpha_to_zero(cv::Mat& im, cv::Mat& mask)
  *              - otherwise: return
  *      3. Calculate gamma based on optimalMean
  *      4. Calculate LUT for all pixel vals [0, 255]
- *      5. Apply the LUP on image ROI
+ *      5. Apply the LUT on image ROI
+ *
+ *      Reminder:
+ *
+ *          out = in.^ (1/gamma)
+ *          gamma < 1:  output image will be darker
+ *          gamma > 1:  output will be brighter
  *
  */
 void gamma_correct(cv::Mat& im, cv::Rect& rect)
