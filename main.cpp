@@ -9,8 +9,15 @@
 #include "appmisc.h"
 
 using namespace stasm;
+using cv::Mat;
+using cv::Rect;
 using std::cout;
 using std::endl;
+
+static char *data_dir;
+static char *path_in;
+static char *path_out;
+static int rotate;
 
 static int is_image(char *path)
 {
@@ -167,142 +174,151 @@ static cv::Mat rotate_image(cv::Mat image, int flag)
     return image_rot;
 }
 
+static int get_face_landmarks(cv::Mat_<unsigned char>& imgGray,
+                              float *landmarks, int& rotateFlag)
+{
+    cv::Mat_<unsigned char> imgRot;
+    int found_face;
+
+    do {
+        imgRot = rotate_image(imgGray, rotateFlag);
+        if (!stasm_search_single(&found_face,
+                                 landmarks,
+                                 (const char *) imgRot.data,
+                                 imgRot.cols,
+                                 imgRot.rows,
+                                 path_in,
+                                 data_dir ? data_dir : "data")) {
+            printf("Error in stasm_search_single: %s\n", stasm_lasterr());
+            return -1;
+        }
+
+        //std::cout << "Rotate " << rotate_flag << std::endl;
+
+        if (found_face)
+            break;
+
+        rotateFlag++;
+    } while (rotate && rotateFlag <= ROTATE_UPSIDE_DOWN);
+
+    if (!found_face) {
+        cout << "No face found in " << path_in << endl;
+        return -1;
+    }
+
+    return 0;
+}
+
 static void show_usage(char *program) {
-	std::cout << "usage: " << program << std::endl;
-	std::cout << "   [-d data directory]  - optional (default: data)" << std::endl;
-	std::cout << "   [-i input_file]      - mandatory" << std::endl;
-	std::cout << "   [-o output_file]     - optional" << std::endl;
-	std::cout << "   [-r ] - optional (assume that input image might be rotated)" << std::endl;
+	cout << "usage: " << program << endl;
+	cout << "   [-d data directory]  - optional (default: data)" << endl;
+	cout << "   [-i input_file]      - mandatory" << endl;
+	cout << "   [-o output_file]     - optional" << endl;
+	cout << "   [-r ] - optional (assume that input image might be rotated)" << endl;
+}
+
+static int parseOpts(int argc, char **argv)
+{
+    const char *const opts= "ri:o:d:";
+    int op;
+
+    if (argc < 3 || argc > 8) {
+        cout << "Invalid args" << endl;
+        show_usage(argv[0]);
+        return -1;
+    }
+
+    while ((op = getopt(argc, argv, opts)) != -1) {
+        switch (op) {
+            case 'i':
+                path_in = optarg;
+                break;
+            case 'o':
+                path_out = optarg;
+                break;
+            case 'd':
+                data_dir = optarg;
+                break;
+            case 'r':
+                rotate = 1;
+                break;
+            default:
+                show_usage(argv[0]);
+                return -1;
+        }
+    }
+
+    if (!path_in || !is_image(path_in)) {
+        cout << "No input image specified" << endl;
+        return -1;
+    }
+
+    return 0;
 }
 
 int main(int argc, char **argv)
 {
-    char *data_dir = NULL;
-    char *path_in = NULL;
-    char *path_out = NULL;
-    int rotate = 0;
-	const char *const opts= "ri:o:d:";
-	int op;
+    int ret;
 
-    if (argc < 3 || argc > 8) {
-        std::cout << "Invalid args" << std::endl;
-        show_usage(argv[0]);
+    ret = parseOpts(argc, argv);
+    if (ret < 0)
         exit(0);
-    }
-
-	while ((op = getopt(argc, argv, opts)) != -1) {
-		switch (op) {
-		case 'i':
-			path_in = optarg;
-			break;
-		case 'o':
-			path_out = optarg;
-			break;
-		case 'd':
-			data_dir = optarg;
-			break;
-		case 'r':
-			rotate = 1;
-			break;
-		default:
-			show_usage(argv[0]);
-			exit(0);
-		}
-	}
-
-    if (!path_in || !is_image(path_in)) {
-        std::cout << "No input image specified" << std::endl;
-        exit(0);
-    }
 
     cv::Mat img_in(cv::imread(path_in));
-    cv::Mat_<unsigned char> img_gray, img_rot;
+    cv::Mat_<unsigned char> img_gray;
     CImage cimg(img_in);
     cvtColor(img_in, img_gray, CV_RGB2GRAY);
 
     if (!img_gray.data) {
-        printf("Cannot load %s\n", path_in);
+        cout << "Cannot load " << path_in << endl;
         exit(1);
     }
 
-    int found_face, rotate_flag = ROTATE_NONE;
     float landmarks[2 * stasm_NLANDMARKS]; // x,y coords (note the 2)
+    int rotateFlag = ROTATE_NONE;
+    ret = get_face_landmarks(img_gray, landmarks, rotateFlag);
+    if (ret < 0)
+        exit(0);
 
-    if (rotate) {
-        for ( ; rotate_flag <= ROTATE_UPSIDE_DOWN; rotate_flag++) {
-            img_rot = rotate_image(img_gray, rotate_flag);
-            if (!stasm_search_single(&found_face,
-                                     landmarks,
-                                     (const char *) img_rot.data,
-                                     img_rot.cols,
-                                     img_rot.rows,
-                                     path_in,
-                                     data_dir ? data_dir : "data")) {
-                printf("Error in stasm_search_single: %s\n", stasm_lasterr());
-                exit(1);
-            }
+    Mat img_mask, img_out;
+    cv::Rect bound_rect;
 
-            //std::cout << "Rotate " << rotate_flag << std::endl;
+    cimg = rotate_image(cimg, rotateFlag);
+    img_mask = cv::Mat::zeros(cimg.size(), CV_8UC3);
+    CImage cimg_tmp(img_mask);
 
-            if (found_face)
-                break;
-        }
+    // Draw bounding face shape:
+    // border:         white
+    // other parts:    black
+    Shape shape(LandmarksAsShape(landmarks));
+    DrawShape(cimg_tmp, shape, 0xffffff);
+
+    // Create face shape mask:
+    // face shape:     white
+    // other parts:    black
+    cv::cvtColor(cimg_tmp, img_mask, cv::COLOR_BGR2GRAY);
+    cv::floodFill(img_mask, cv::Point(0, 0),
+                  cv::Scalar(255.0, 255.0, 255.0));
+    cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY_INV);
+
+    // Create bounding rectangle for image mask
+    bound_rect = get_wrap_rect(img_mask);
+
+    // Apply mask on original image
+    cimg.copyTo(img_out, img_mask);
+    cv::cvtColor(img_out, img_out, cv::COLOR_BGR2BGRA, 4);
+
+    // Set alpha channel for all pixels to 0
+    set_alpha_to_zero(img_out, img_mask);
+
+    // Gamma correct output image
+    gamma_correct(img_out, bound_rect);
+
+    if (path_out) {
+        cv::imwrite(path_out, img_out(bound_rect));
     } else {
-            if (!stasm_search_single(&found_face,
-                                     landmarks,
-                                     (const char *) img_gray.data,
-                                     img_gray.cols,
-                                     img_gray.rows,
-                                     path_in,
-                                     data_dir ? data_dir : "data")) {
-                printf("Error in stasm_search_single: %s\n", stasm_lasterr());
-                exit(1);
-            }
-    }
-
-    if (!found_face) {
-         printf("No face found in %s\n", path_in);
-    } else {
-        cv::Mat img_mask, img_out;
-        cv::Rect bound_rect;
-
-        cimg = rotate_image(cimg, rotate_flag);
-        img_mask = cv::Mat::zeros(cimg.size(), CV_8UC3);
-        CImage cimg_tmp(img_mask);
-
-        // Draw bounding face shape:
-        // border:         white
-        // other parts:    black
-        Shape shape(LandmarksAsShape(landmarks));
-        DrawShape(cimg_tmp, shape, 0xffffff);
-
-        // Create face shape mask:
-        // face shape:     white
-        // other parts:    black
-        cv::cvtColor(cimg_tmp, img_mask, cv::COLOR_BGR2GRAY);
-        cv::floodFill(img_mask, cv::Point(0, 0),
-                      cv::Scalar(255.0, 255.0, 255.0));
-        cv::threshold(img_mask, img_mask, 254, 255, CV_THRESH_BINARY_INV);
-
-        // Create bounding rectangle for image mask
-        bound_rect = get_wrap_rect(img_mask);
-
-        // Apply mask on original image
-        cimg.copyTo(img_out, img_mask);
-        cv::cvtColor(img_out, img_out, cv::COLOR_BGR2BGRA, 4);
-
-        // Set alpha channel for all pixels to 0
-        set_alpha_to_zero(img_out, img_mask);
-
-        // Gamma correct output image
-        gamma_correct(img_out, bound_rect);
-
-        if (path_out) {
-            cv::imwrite(path_out, img_out(bound_rect));
-        } else {
-            cv::imshow("mask preview", img_out(bound_rect));
-            cv::waitKey();
-        }
+        cv::imshow("mask preview", img_out(bound_rect));
+        cv::waitKey();
     }
 
     return 0;
