@@ -9,6 +9,8 @@
 #include "appmisc.h"
 
 using namespace stasm;
+using std::cout;
+using std::endl;
 
 static int is_image(char *path)
 {
@@ -57,6 +59,44 @@ cv::Rect get_wrap_rect(cv::Mat img) {
 
 	cv::Rect rect(x_min, y_min, x_max - x_min, y_max - y_min);
 	return rect;
+}
+
+void set_alpha_to_zero(cv::Mat& im, cv::Mat& mask)
+{
+    uint8_t *mask_data = (uint8_t *) mask.data;
+    for (int i = 0; i < im.rows; i++) {
+        for (int j = 0; j < im.cols; j++) {
+            cv::Vec4b& v = im.at<cv::Vec4b>(i, j);
+            if (!*mask_data++)
+                v[3] = 0;
+        }
+    }
+}
+
+void gamma_correct(cv::Mat& im, cv::Rect& rect)
+{
+    cv::Mat imROI(im(rect)), imGray;
+    cvtColor(imROI, imGray, CV_RGB2GRAY);
+    cv::Scalar imMean = cv::mean(imGray);
+    unsigned imMeanInt = imMean(0);
+    float imGamma = log2(imMeanInt) / log2(127);
+
+    // Build look-up table
+    uchar lut[256];
+    for (int i = 0; i < 256; i++)
+        lut[i] = cv::saturate_cast<uchar>(pow((float)(i / 255.0), imGamma) * 255.0f);
+
+    if (imMeanInt < 100 || imMeanInt > 200) {
+        // cout << "Perform gamma (" << 1 / imGamma << ") correction " << endl;
+        for (int i = rect.y; i < rect.y + rect.height; i++) {
+            for (int j = rect.x; j < rect.x + rect.width; j++) {
+                cv::Vec4b& v = im.at<cv::Vec4b>(i, j);
+                v[0] = lut[v[0]];
+                v[1] = lut[v[1]];
+                v[2] = lut[v[2]];
+            }
+        }
+    }
 }
 
 enum rotate_flags {
@@ -219,14 +259,10 @@ int main(int argc, char **argv)
         cv::cvtColor(img_out, img_out, cv::COLOR_BGR2BGRA, 4);
 
         // Set alpha channel for all pixels to 0
-        uint8_t *mask_data = (uint8_t *) img_mask.data;
-	    for (int i = 0; i < img_out.rows; i++) {
-            for (int j = 0; j < img_out.cols; j++) {
-                cv::Vec4b& v = img_out.at<cv::Vec4b>(i,j);
-		        if (!*mask_data++)
-                    v[3] = 0;
-            }
-        }
+        set_alpha_to_zero(img_out, img_mask);
+
+        // Gamma correct output image
+        gamma_correct(img_out, bound_rect);
 
         if (path_out) {
             cv::imwrite(path_out, img_out(bound_rect));
